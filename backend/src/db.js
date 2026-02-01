@@ -2,31 +2,38 @@ import mysql from "mysql2/promise";
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
-import dns from "dns/promises";
+import dns from "dns";
+import dnsPromises from "dns/promises";
 
 dotenv.config();
 
 const ca = fs.readFileSync(path.resolve("ca.pem"));
 
-const DB_HOST = process.env.DB_HOST;
-const DB_PORT = Number(process.env.DB_PORT);
-const DB_USER = process.env.DB_USER;
-const DB_PASSWORD = process.env.DB_PASSWORD;
-const DB_NAME = process.env.DB_NAME;
+const DB_HOST = (process.env.DB_HOST || "").trim();
+const DB_PORT = Number((process.env.DB_PORT || "").trim());
+const DB_USER = (process.env.DB_USER || "").trim();
+const DB_PASSWORD = process.env.DB_PASSWORD || "";
+const DB_NAME = (process.env.DB_NAME || "").trim();
 
+
+dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 async function resolveHostToIPv4(hostname) {
   try {
-    const ips = await dns.resolve4(hostname);
+    const ips = await dnsPromises.resolve4(hostname);
     if (ips?.length) return ips[0];
   } catch (e) {
-    console.error("DNS resolve4 falló, usando hostname:", e.message);
+    console.error("DNS resolve4 falló:", e.message);
   }
-  return hostname; 
+  return hostname; // fallback
 }
 
 const resolvedHost = await resolveHostToIPv4(DB_HOST);
 
+
+console.log("[DB] DB_HOST =", DB_HOST);
+console.log("[DB] resolvedHost =", resolvedHost);
+console.log("[DB] DB_PORT =", DB_PORT, " DB_NAME =", DB_NAME);
 
 export const pool = mysql.createPool({
   host: resolvedHost,
@@ -34,15 +41,16 @@ export const pool = mysql.createPool({
   user: DB_USER,
   password: DB_PASSWORD,
   database: DB_NAME,
-
-  // Aiven: SSL REQUIRED
   ssl: {
     ca,
-    servername: DB_HOST,          
+    servername: DB_HOST,
     rejectUnauthorized: true,
   },
-
   waitForConnections: true,
+  connectionLimit: 10,
+  connectTimeout: 20000,
+});
+
   connectionLimit: 10,
   connectTimeout: 20000,
 });
