@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
 import dns from "dns";
-import dnsPromises from "dns/promises";
+import { resolve4 } from "dns/promises";
 
 dotenv.config();
 
@@ -15,25 +15,24 @@ const DB_USER = (process.env.DB_USER || "").trim();
 const DB_PASSWORD = process.env.DB_PASSWORD || "";
 const DB_NAME = (process.env.DB_NAME || "").trim();
 
-
+// DNS públicos para evitar problemas raros en Render
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 async function resolveHostToIPv4(hostname) {
   try {
-    const ips = await dnsPromises.resolve4(hostname);
-    if (ips?.length) return ips[0];
+    const ips = await resolve4(hostname);
+    if (ips && ips.length > 0) return ips[0];
   } catch (e) {
-    console.error("DNS resolve4 falló:", e.message);
+    console.error("[DB] resolve4 falló:", e.message);
   }
   return hostname; // fallback
 }
 
 const resolvedHost = await resolveHostToIPv4(DB_HOST);
 
-
 console.log("[DB] DB_HOST =", DB_HOST);
 console.log("[DB] resolvedHost =", resolvedHost);
-console.log("[DB] DB_PORT =", DB_PORT, " DB_NAME =", DB_NAME);
+console.log("[DB] DB_PORT =", DB_PORT, "| DB_NAME =", DB_NAME);
 
 export const pool = mysql.createPool({
   host: resolvedHost,
@@ -50,8 +49,3 @@ export const pool = mysql.createPool({
   connectionLimit: 10,
   connectTimeout: 20000,
 });
-
-  connectionLimit: 10,
-  connectTimeout: 20000,
-});
-
