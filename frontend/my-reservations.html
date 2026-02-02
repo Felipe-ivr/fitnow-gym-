@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>FitNow Gym - Mis reservas</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <style>
+    body{
+      min-height: 100vh;
+      background:
+        radial-gradient(900px 500px at 10% 10%, rgba(13,110,253,.18), transparent 60%),
+        radial-gradient(900px 500px at 90% 20%, rgba(32,201,151,.16), transparent 55%),
+        #0b1220;
+      color: #e9eef8;
+    }
+    .glass{
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      backdrop-filter: blur(10px);
+      border-radius: 18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+    }
+    .muted{ color: rgba(233,238,248,.72); }
+    .btn-main{
+      border: 0;
+      background: linear-gradient(135deg, #0d6efd, #20c997);
+    }
+    .btn-main:hover{ filter: brightness(1.06); }
+    .btn-outline-light{ border-color: rgba(255,255,255,.25); }
+    .form-control, .form-select{
+      background: rgba(255,255,255,.06) !important;
+      border-color: rgba(255,255,255,.12) !important;
+      color: #e9eef8 !important;
+    }
+    .form-control::placeholder{ color: rgba(233,238,248,.45); }
+    .chip{
+      display:inline-flex; align-items:center; gap:.45rem;
+      padding:.35rem .6rem; border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      font-size: .85rem;
+    }
+    .divider{ border-top: 1px solid rgba(255,255,255,.10); }
+    .card-item{
+      transition: transform .12s ease, border-color .12s ease, background .12s ease;
+    }
+    .card-item:hover{
+      transform: translateY(-2px);
+      border-color: rgba(255,255,255,.16);
+      background: rgba(255,255,255,.07);
+    }
+    .badge-soft{
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.08);
+      color: #e9eef8;
+    }
+  </style>
+</head>
+
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark">
+  <div class="container py-2">
+    <a class="navbar-brand fw-bold" href="dashboard.html">
+      <i class="bi bi-lightning-charge-fill text-info me-1"></i> FitNow Gym
+    </a>
+    <div class="d-flex align-items-center gap-2">
+      <span id="navPanel" class="text-white-50 small"></span>
+      <span id="navUser" class="text-white-50 small"></span>
+      <button id="btnLogout" class="btn btn-outline-light btn-sm">
+        <i class="bi bi-box-arrow-right me-1"></i> Salir
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="container pb-5">
+  <div class="glass p-4 p-md-5 mt-3">
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3">
+      <div>
+        <h1 class="h3 mb-1"><i class="bi bi-bookmark-check me-2"></i>Mis reservas</h1>
+        <div class="muted">Revisa tus reservas y cancela si está en estado “reservada”.</div>
+      </div>
+      <a class="btn btn-outline-light" href="dashboard.html">
+        <i class="bi bi-arrow-left me-1"></i> Volver
+      </a>
+    </div>
+
+    <div id="alertBox" class="mt-2"></div>
+
+    <div class="row g-2 mt-2">
+      <div class="col-md-7">
+        <div class="input-group">
+          <span class="input-group-text bg-transparent text-white-50 border-0"><i class="bi bi-search"></i></span>
+          <input id="q" class="form-control border-0" placeholder="Buscar por clase o #reserva…">
+        </div>
+      </div>
+      <div class="col-md-5">
+        <select id="sort" class="form-select">
+          <option value="dateDesc">Ordenar: Fecha (desc)</option>
+          <option value="dateAsc">Ordenar: Fecha (asc)</option>
+          <option value="status">Ordenar: Estado</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="divider my-4"></div>
+
+    <div id="listWrap" class="row g-3">
+      <div class="col-12"><div class="muted">Cargando…</div></div>
+    </div>
+
+    <div class="mt-4 muted small">
+      <i class="bi bi-info-circle me-1"></i> Solo se puede cancelar cuando el estado es <b>reservada</b>.
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { api } from "./assets/js/api.js";
+  import { requireSessionOrRedirect } from "./assets/js/storage.js";
+  import { setNavUser, wireLogout, showAlert } from "./assets/js/ui.js";
+
+  const session = requireSessionOrRedirect();
+  setNavUser(); wireLogout();
+
+  const rol = String(session?.user?.rol || "").toLowerCase();
+  const navPanel = document.querySelector("#navPanel");
+  if (navPanel) navPanel.textContent = (rol === "administrador") ? "Panel de Administración" : "Área de Socio";
+
+  const wrap = document.querySelector("#listWrap");
+  const q = document.querySelector("#q");
+  const sort = document.querySelector("#sort");
+
+  let all = [];
+
+  const fmtDate = (d) => (typeof d === "string" ? d.slice(0,10) : (d || ""));
+  const normalize = (v) => String(v || "").toLowerCase();
+
+  function statusPill(estado){
+    const e = String(estado || "").toLowerCase();
+    const map = {
+      reservada: { icon: "bi-check2-circle", label: "Reservada", cls: "text-bg-success" },
+      cancelada: { icon: "bi-x-circle", label: "Cancelada", cls: "text-bg-secondary" },
+      asistio: { icon: "bi-emoji-smile", label: "Asistió", cls: "text-bg-primary" },
+      no_asistio: { icon: "bi-emoji-neutral", label: "No asistió", cls: "text-bg-warning" },
+    };
+    const it = map[e] || { icon: "bi-info-circle", label: estado || "N/D", cls: "badge-soft" };
+
+    if (it.cls === "badge-soft") {
+      return `<span class="badge badge-soft"><i class="bi ${it.icon} me-1"></i>${it.label}</span>`;
+    }
+    return `<span class="badge ${it.cls}"><i class="bi ${it.icon} me-1"></i>${it.label}</span>`;
+  }
+
+  function compare(a,b,mode){
+    const da = (a.fecha || "").toString();
+    const db = (b.fecha || "").toString();
+    if (mode === "dateAsc") return da.localeCompare(db);
+    if (mode === "status") return String(a.estado||"").localeCompare(String(b.estado||""));
+    return db.localeCompare(da);
+  }
+
+  function card(r){
+    const canCancel = String(r.estado || "").toLowerCase() === "reservada";
+    return `
+      <div class="col-12 col-lg-6">
+        <div class="glass p-4 card-item h-100">
+          <div class="d-flex align-items-start justify-content-between gap-3">
+            <div>
+              <div class="fw-semibold fs-5 mb-1">${r.nombre_clase}</div>
+              <div class="muted small">Reserva <b>#${r.id_reserva}</b></div>
+            </div>
+            ${statusPill(r.estado)}
+          </div>
+
+          <div class="divider my-3"></div>
+
+          <div class="d-flex flex-wrap gap-2">
+            <span class="chip"><i class="bi bi-calendar3"></i> ${fmtDate(r.fecha)}</span>
+            <span class="chip"><i class="bi bi-clock"></i> ${r.hora_inicio} - ${r.hora_fin}</span>
+          </div>
+
+          <div class="d-grid mt-3">
+            <button class="btn btn-outline-danger ${canCancel ? "" : "disabled"}" data-cancel="${r.id_reserva}">
+              <i class="bi bi-x-circle me-1"></i> Cancelar reserva
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function render(){
+    const term = normalize(q.value);
+    const mode = sort.value;
+
+    let filtered = all.filter(r => (normalize(r.nombre_clase) + " " + normalize(r.id_reserva)).includes(term));
+    filtered.sort((a,b)=>compare(a,b,mode));
+
+    if (!filtered.length) {
+      wrap.innerHTML = `
+        <div class="col-12">
+          <div class="glass p-4">
+            <div class="fw-semibold mb-1"><i class="bi bi-emoji-frown me-2"></i>No tienes reservas</div>
+            <div class="muted small">Ve a “Clases” y reserva una.</div>
+            <div class="mt-3">
+              <a class="btn btn-main text-white fw-semibold" href="classes.html">
+                <i class="bi bi-calendar-event me-1"></i> Ir a clases
+              </a>
+            </div>
+          </div>
+        </div>`;
+      return;
+    }
+
+    wrap.innerHTML = filtered.map(card).join("");
+
+    wrap.querySelectorAll("button[data-cancel]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.cancel;
+        if (btn.classList.contains("disabled")) return;
+
+        const old = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Cancelando...';
+
+        try {
+          const r = await api.cancelReservation(id);
+          showAlert("#alertBox", "success", r.message || "Reserva cancelada");
+          await load();
+        } catch (e) {
+          showAlert("#alertBox", "warning", e.message || "No se pudo cancelar");
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = old;
+        }
+      });
+    });
+  }
+
+  async function load(){
+    try{
+      const rows = await api.myReservations();
+      all = Array.isArray(rows) ? rows : [];
+      render();
+    }catch(e){
+      showAlert("#alertBox", "danger", e.message || "Error al cargar reservas");
+      wrap.innerHTML = `
+        <div class="col-12">
+          <div class="glass p-4">
+            <div class="fw-semibold mb-1"><i class="bi bi-exclamation-triangle me-2"></i>Error</div>
+            <div class="muted small">No se pudieron cargar tus reservas.</div>
+          </div>
+        </div>`;
+    }
+  }
+
+  q.addEventListener("input", render);
+  sort.addEventListener("change", render);
+
+  load();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

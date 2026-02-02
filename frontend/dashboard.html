@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>FitNow Gym</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <style>
+    body{
+      min-height: 100vh;
+      background:
+        radial-gradient(900px 500px at 10% 10%, rgba(13,110,253,.18), transparent 60%),
+        radial-gradient(900px 500px at 90% 20%, rgba(32,201,151,.16), transparent 55%),
+        #0b1220;
+      color: #e9eef8;
+    }
+    .glass{
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      backdrop-filter: blur(10px);
+      border-radius: 18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+    }
+    .muted{ color: rgba(233,238,248,.72); }
+    .btn-main{
+      border: 0;
+      background: linear-gradient(135deg, #0d6efd, #20c997);
+    }
+    .btn-main:hover{ filter: brightness(1.06); }
+    .btn-outline-light{ border-color: rgba(255,255,255,.25); }
+    .chip{
+      display:inline-flex; align-items:center; gap:.45rem;
+      padding:.35rem .6rem; border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      font-size: .85rem;
+    }
+    .divider{ border-top: 1px solid rgba(255,255,255,.10); }
+  </style>
+</head>
+
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark">
+  <div class="container py-2">
+    <a class="navbar-brand fw-bold" href="dashboard.html">
+      <i class="bi bi-lightning-charge-fill text-info me-1"></i> FitNow Gym
+    </a>
+    <div class="d-flex align-items-center gap-2">
+      <span id="navPanel" class="text-white-50 small"></span>
+      <span id="navUser" class="text-white-50 small"></span>
+      <button id="btnLogout" class="btn btn-outline-light btn-sm">
+        <i class="bi bi-box-arrow-right me-1"></i> Salir
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-5">
+  <div class="glass p-4 p-md-5">
+
+    <div class="mb-4">
+      <h1 id="panelTitle" class="fw-bold mb-1"></h1>
+      <p id="panelSubtitle" class="muted mb-0"></p>
+    </div>
+
+    <!-- RESUMEN (solo datos reales de endpoints ya usados) -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="glass p-4 h-100">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <div class="muted small">Estado</div>
+              <div class="fw-semibold">Sesión activa</div>
+            </div>
+            <span class="chip"><i class="bi bi-shield-check"></i> JWT</span>
+          </div>
+          <div class="divider my-3"></div>
+          <div class="muted small" id="summaryHint">Cargando resumen…</div>
+        </div>
+      </div>
+
+      <div class="col-md-4" id="clientCard">
+        <div class="glass p-4 h-100">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <div class="muted small">Reservas activas</div>
+              <div class="fw-semibold fs-4" id="activeResCount">—</div>
+            </div>
+            <span class="chip"><i class="bi bi-bookmark-check"></i> Clases</span>
+          </div>
+          <div class="divider my-3"></div>
+          <div class="muted small" id="nextClassText">Próxima clase: —</div>
+        </div>
+      </div>
+
+      <div class="col-md-4" id="adminCard">
+        <div class="glass p-4 h-100">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <div class="muted small">Clases activas</div>
+              <div class="fw-semibold fs-4" id="activeClassesCount">—</div>
+            </div>
+            <span class="chip"><i class="bi bi-gear"></i> Admin</span>
+          </div>
+          <div class="divider my-3"></div>
+          <div class="muted small">Gestión de clases y cupos desde el panel.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <!-- CLIENTE -->
+      <div class="col-md-6" id="clienteSection">
+        <div class="glass p-4 h-100">
+          <h5><i class="bi bi-calendar-check me-2 text-success"></i>Área de Socio</h5>
+          <p class="muted small">Reserva tus clases y revisa tu actividad.</p>
+          <div class="d-grid gap-2 mt-3">
+            <a href="classes.html" class="btn btn-main text-white">
+              <i class="bi bi-calendar-event me-1"></i> Ver clases
+            </a>
+            <a href="my-reservations.html" class="btn btn-outline-light">
+              <i class="bi bi-bookmark-check me-1"></i> Mis reservas
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADMIN -->
+      <div class="col-md-6" id="adminSection">
+        <div class="glass p-4 h-100">
+          <h5><i class="bi bi-gear me-2 text-info"></i>Panel de Administración</h5>
+          <p class="muted small">Crea clases, define cupos y organiza horarios.</p>
+          <div class="d-grid mt-3">
+            <a href="admin-classes.html" class="btn btn-main text-white">
+              <i class="bi bi-plus-circle me-1"></i> Gestionar clases
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+  import { api } from "./assets/js/api.js";
+  import { requireSessionOrRedirect } from "./assets/js/storage.js";
+  import { setNavUser, wireLogout } from "./assets/js/ui.js";
+
+  const session = requireSessionOrRedirect();
+  setNavUser(); wireLogout();
+
+  const rol = String(session?.user?.rol || "").toLowerCase();
+  const navPanel = document.querySelector("#navPanel");
+  if (navPanel) navPanel.textContent = (rol === "administrador") ? "Panel de Administración" : "Área de Socio";
+
+  const title = document.querySelector("#panelTitle");
+  const subtitle = document.querySelector("#panelSubtitle");
+  const clienteSection = document.querySelector("#clienteSection");
+  const adminSection = document.querySelector("#adminSection");
+
+  const clientCard = document.querySelector("#clientCard");
+  const adminCard = document.querySelector("#adminCard");
+
+  const hint = document.querySelector("#summaryHint");
+  const activeResCount = document.querySelector("#activeResCount");
+  const nextClassText = document.querySelector("#nextClassText");
+  const activeClassesCount = document.querySelector("#activeClassesCount");
+
+  function fmtDate(d){ return (typeof d === "string") ? d.slice(0,10) : (d || ""); }
+  function timeToMinutes(t){
+    const [h,m] = String(t||"0:0").split(":").map(Number);
+    return (h*60) + (m||0);
+  }
+  function isFutureOrToday(isoDate){
+    if (!isoDate) return false;
+    const today = new Date();
+    const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const [y,mo,da] = isoDate.split("-").map(Number);
+    const d = new Date(y, mo-1, da);
+    return d >= t;
+  }
+
+  if (rol === "administrador") {
+    title.textContent = "Panel de Administración";
+    subtitle.textContent = "Controla clases, cupos y organización del gimnasio.";
+    clienteSection.style.display = "none";
+    clientCard.style.display = "none";
+    hint.textContent = "Resumen del sistema cargado desde la API.";
+
+    try{
+      const classes = await api.listClasses();
+      activeClassesCount.textContent = Array.isArray(classes) ? classes.length : 0;
+    }catch{
+      activeClassesCount.textContent = "—";
+      hint.textContent = "No se pudo cargar el resumen (API).";
+    }
+  } else {
+    title.textContent = "Área de Socio";
+    subtitle.textContent = "Reserva clases, revisa tu actividad y gestiona tus reservas.";
+    adminSection.style.display = "none";
+    adminCard.style.display = "none";
+    hint.textContent = "Tu resumen se calcula desde tus reservas.";
+
+    try{
+      const rows = await api.myReservations();
+      const all = Array.isArray(rows) ? rows : [];
+      const active = all.filter(r => String(r.estado||"").toLowerCase() === "reservada");
+      activeResCount.textContent = active.length;
+
+      const upcoming = active
+        .filter(r => isFutureOrToday(fmtDate(r.fecha)))
+        .sort((a,b) => {
+          const da = fmtDate(a.fecha), db = fmtDate(b.fecha);
+          if (da !== db) return String(da).localeCompare(String(db));
+          return timeToMinutes(a.hora_inicio) - timeToMinutes(b.hora_inicio);
+        })[0];
+
+      nextClassText.textContent = upcoming
+        ? `Próxima clase: ${upcoming.nombre_clase} (${fmtDate(upcoming.fecha)} - ${upcoming.hora_inicio})`
+        : "Próxima clase: — (sin reservas futuras)";
+    }catch{
+      activeResCount.textContent = "—";
+      nextClassText.textContent = "Próxima clase: —";
+      hint.textContent = "No se pudo cargar tu resumen (API).";
+    }
+  }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
